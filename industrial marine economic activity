@@ -3,19 +3,15 @@ var plot_palette = ['09FF00','green', 'yellow', 'purple', 'red'];
 
 ///Red to green colour palette for highlighting difference
 //scale = bold red, red, light red, light green, green, bright green
-var diff_plot_palette = ['E10600','FF0000', 'FF8A8A', 'a7ffa4', '#00ff00, 'ffFF00']; 
+var diff_plot_palette = ['E10600','FF0000', 'FF8A8A', 'a7ffa4', '#00ff00', '#ffFF00']; 
 
-var global_scale = 1000;
-var regional_scale = 250;
-var custom_scale = 500;
+var maxPixels = 1e15;  //This decreases the likelihood of computation timeouts
+var tileScale = 16; // This decreases the likelihood of computation timeouts
 
-var reducer = ee.Reducer.sum();
-var maxPixels = 1e15;
-var scale = custom_scale;
-var gte_value = 1;
-var tileScale = 16;
-
+//Select the relevant night light datset and the data band
 var VIIRSCollection = ee.ImageCollection("NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG").select('avg_rad');
+
+//Defining colour schemes based on above pallettes
 var VIIRSParams = {bands: ['avg_rad'],  min: -2, max: 2, palette: plot_palette};
 var difference_params = {bands: ['avg_rad'],  min: -2, max: 2, palette: diff_plot_palette};
 
@@ -23,8 +19,7 @@ var difference_params = {bands: ['avg_rad'],  min: -2, max: 2, palette: diff_plo
 //var geometry = ee.Geometry.Point(123.3165, -13.9451).buffer(30000);
 
 //Define a region of interest using a shapefile
-var geometry = ee.FeatureCollection('users/lyndonllewellyn1/coastlines/australia_plus_eez');
-
+var geometry = ee.FeatureCollection('users/lyndonllewellyn1/persian_gulf');
 
 //median of all values across at each pixel across the stack of bands for the previous 12 months.
 var VIIRS_2024_Q2 = VIIRSCollection.filterDate('2023-07-01', '2024-06-30').median();
@@ -136,8 +131,8 @@ var maskedCompositeVIIRS2013_Q3 = VIIRS_2013_Q3.updateMask(mask);
 var maskedCompositeVIIRS2013_Q2 = VIIRS_2013_Q2.updateMask(mask);
 var maskedCompositeVIIRS2013_Q1 = VIIRS_2013_Q1.updateMask(mask);
 
-
-//Remove pixels less than zero in the VIIRS images
+//Remove pixels less than one in the VIIRS images (the gte value can be changed from one in the first line)
+var gte_value = 1;
 var VIIRS_2024_Q2_greater_than_zero_mask = maskedCompositeVIIRS2024_Q2.gte(gte_value);
 var VIIRS_2024_Q1_greater_than_zero_mask = maskedCompositeVIIRS2024_Q1.gte(gte_value);
 var VIIRS_2023_Q4_greater_than_zero_mask = maskedCompositeVIIRS2023_Q4.gte(gte_value);
@@ -185,6 +180,7 @@ var VIIRS_2013_Q3_greater_than_zero_mask = maskedCompositeVIIRS2013_Q3.gte(gte_v
 var VIIRS_2013_Q2_greater_than_zero_mask = maskedCompositeVIIRS2013_Q2.gte(gte_value);
 var VIIRS_2013_Q1_greater_than_zero_mask = maskedCompositeVIIRS2013_Q1.gte(gte_value);
 
+//Eliminate any zero artafacts bceuase the very large number of pixels can artificially reduce the final calculation
 var VIIRS_2024_Q2_zeroes_masked = VIIRS_2024_Q2.updateMask(VIIRS_2024_Q2_greater_than_zero_mask);
 var VIIRS_2024_Q1_zeroes_masked = VIIRS_2024_Q1.updateMask(VIIRS_2024_Q1_greater_than_zero_mask);
 var VIIRS_2023_Q4_zeroes_masked = VIIRS_2023_Q4.updateMask(VIIRS_2023_Q4_greater_than_zero_mask);
@@ -280,14 +276,11 @@ var logVIIRS_2013_Q3_zeroes_masked = ee.Image(VIIRS_2013_Q3_zeroes_masked).log10
 var logVIIRS_2013_Q2_zeroes_masked = ee.Image(VIIRS_2013_Q2_zeroes_masked).log10();
 var logVIIRS_2013_Q1_zeroes_masked = ee.Image(VIIRS_2013_Q1_zeroes_masked).log10();
 
-//Map.addLayer(logVIIRS_2019_Q4_zeroes_masked, VIIRSParams, 'VIIRS Q4, 2019 coast masked', 0);
-//Map.addLayer(logVIIRS_2020_Q4_zeroes_masked, VIIRSParams, 'VIIRS Q4, 2020 coast masked', 0);
-//Map.addLayer(logVIIRS_2021_Q4_zeroes_masked, VIIRSParams, 'VIIRS Q4, 2021 coast masked', 0);
-//Map.addLayer(logVIIRS_2022_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2022 coast masked', 0);
-//Map.addLayer(logVIIRS_2023_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2023 coast masked', 0);
-
-
 //Calculate and print stats
+
+var reducer = ee.Reducer.sum();
+var scale = 1000;
+
 print("Land masked VIIRS Q1 2013 to Q3 2024",
   logVIIRS_2013_Q1_zeroes_masked.reduceRegion({
   reducer: reducer,
@@ -613,490 +606,7 @@ print("Land masked VIIRS Q1 2013 to Q3 2024",
 })
 );
 
-//Unmasked Data
-
-//Remove pixels less than zero in the VIIRS images
-var all_continent_VIIRS_2024_Q2_greater_than_zero_mask = VIIRS_2024_Q2.gte(gte_value);
-var all_continent_VIIRS_2024_Q1_greater_than_zero_mask = VIIRS_2024_Q1.gte(gte_value);
-var all_continent_VIIRS_2023_Q4_greater_than_zero_mask = VIIRS_2023_Q4.gte(gte_value);
-var all_continent_VIIRS_2023_Q3_greater_than_zero_mask = VIIRS_2023_Q3.gte(gte_value);
-var all_continent_VIIRS_2023_Q2_greater_than_zero_mask = VIIRS_2023_Q2.gte(gte_value);
-var all_continent_VIIRS_2023_Q1_greater_than_zero_mask = VIIRS_2023_Q1.gte(gte_value);
-var all_continent_VIIRS_2022_Q4_greater_than_zero_mask = VIIRS_2022_Q4.gte(gte_value);
-var all_continent_VIIRS_2022_Q3_greater_than_zero_mask = VIIRS_2022_Q3.gte(gte_value);
-var all_continent_VIIRS_2022_Q2_greater_than_zero_mask = VIIRS_2022_Q2.gte(gte_value);
-var all_continent_VIIRS_2022_Q1_greater_than_zero_mask = VIIRS_2022_Q1.gte(gte_value);
-var all_continent_VIIRS_2021_Q4_greater_than_zero_mask = VIIRS_2021_Q4.gte(gte_value);
-var all_continent_VIIRS_2021_Q3_greater_than_zero_mask = VIIRS_2021_Q3.gte(gte_value);
-var all_continent_VIIRS_2021_Q2_greater_than_zero_mask = VIIRS_2021_Q2.gte(gte_value);
-var all_continent_VIIRS_2021_Q1_greater_than_zero_mask = VIIRS_2021_Q1.gte(gte_value);
-var all_continent_VIIRS_2020_Q4_greater_than_zero_mask = VIIRS_2020_Q4.gte(gte_value);
-var all_continent_VIIRS_2020_Q3_greater_than_zero_mask = VIIRS_2020_Q3.gte(gte_value);
-var all_continent_VIIRS_2020_Q2_greater_than_zero_mask = VIIRS_2020_Q2.gte(gte_value);
-var all_continent_VIIRS_2020_Q1_greater_than_zero_mask = VIIRS_2020_Q1.gte(gte_value);
-var all_continent_VIIRS_2019_Q4_greater_than_zero_mask = VIIRS_2019_Q4.gte(gte_value);
-var all_continent_VIIRS_2019_Q3_greater_than_zero_mask = VIIRS_2019_Q3.gte(gte_value);
-var all_continent_VIIRS_2019_Q2_greater_than_zero_mask = VIIRS_2019_Q2.gte(gte_value);
-var all_continent_VIIRS_2019_Q1_greater_than_zero_mask = VIIRS_2019_Q1.gte(gte_value);
-var all_continent_VIIRS_2018_Q4_greater_than_zero_mask = VIIRS_2018_Q4.gte(gte_value);
-var all_continent_VIIRS_2018_Q3_greater_than_zero_mask = VIIRS_2018_Q3.gte(gte_value);
-var all_continent_VIIRS_2018_Q2_greater_than_zero_mask = VIIRS_2018_Q2.gte(gte_value);
-var all_continent_VIIRS_2018_Q1_greater_than_zero_mask = VIIRS_2018_Q1.gte(gte_value);
-var all_continent_VIIRS_2017_Q4_greater_than_zero_mask = VIIRS_2017_Q4.gte(gte_value);
-var all_continent_VIIRS_2017_Q3_greater_than_zero_mask = VIIRS_2017_Q3.gte(gte_value);
-var all_continent_VIIRS_2017_Q2_greater_than_zero_mask = VIIRS_2017_Q2.gte(gte_value);
-var all_continent_VIIRS_2017_Q1_greater_than_zero_mask = VIIRS_2017_Q1.gte(gte_value);
-var all_continent_VIIRS_2016_Q4_greater_than_zero_mask = VIIRS_2016_Q4.gte(gte_value);
-var all_continent_VIIRS_2016_Q3_greater_than_zero_mask = VIIRS_2016_Q3.gte(gte_value);
-var all_continent_VIIRS_2016_Q2_greater_than_zero_mask = VIIRS_2016_Q2.gte(gte_value);
-var all_continent_VIIRS_2016_Q1_greater_than_zero_mask = VIIRS_2016_Q1.gte(gte_value);
-var all_continent_VIIRS_2015_Q4_greater_than_zero_mask = VIIRS_2015_Q4.gte(gte_value);
-var all_continent_VIIRS_2015_Q3_greater_than_zero_mask = VIIRS_2015_Q3.gte(gte_value);
-var all_continent_VIIRS_2015_Q2_greater_than_zero_mask = VIIRS_2015_Q2.gte(gte_value);
-var all_continent_VIIRS_2015_Q1_greater_than_zero_mask = VIIRS_2015_Q1.gte(gte_value);
-var all_continent_VIIRS_2014_Q4_greater_than_zero_mask = VIIRS_2014_Q4.gte(gte_value);
-var all_continent_VIIRS_2014_Q3_greater_than_zero_mask = VIIRS_2014_Q3.gte(gte_value);
-var all_continent_VIIRS_2014_Q2_greater_than_zero_mask = VIIRS_2014_Q2.gte(gte_value);
-var all_continent_VIIRS_2014_Q1_greater_than_zero_mask = VIIRS_2014_Q1.gte(gte_value);
-var all_continent_VIIRS_2013_Q4_greater_than_zero_mask = VIIRS_2013_Q4.gte(gte_value);
-var all_continent_VIIRS_2013_Q3_greater_than_zero_mask = VIIRS_2013_Q3.gte(gte_value);
-var all_continent_VIIRS_2013_Q2_greater_than_zero_mask = VIIRS_2013_Q2.gte(gte_value);
-var all_continent_VIIRS_2013_Q1_greater_than_zero_mask = VIIRS_2013_Q1.gte(gte_value);
-
-var all_continent_VIIRS_2024_Q2_zeroes_masked = VIIRS_2023_Q4.updateMask(all_continent_VIIRS_2023_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2024_Q1_zeroes_masked = VIIRS_2023_Q3.updateMask(all_continent_VIIRS_2023_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2023_Q4_zeroes_masked = VIIRS_2023_Q4.updateMask(all_continent_VIIRS_2023_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2023_Q3_zeroes_masked = VIIRS_2023_Q3.updateMask(all_continent_VIIRS_2023_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2023_Q2_zeroes_masked = VIIRS_2023_Q2.updateMask(all_continent_VIIRS_2023_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2023_Q1_zeroes_masked = VIIRS_2023_Q1.updateMask(all_continent_VIIRS_2023_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2022_Q4_zeroes_masked = VIIRS_2022_Q4.updateMask(all_continent_VIIRS_2022_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2022_Q3_zeroes_masked = VIIRS_2022_Q3.updateMask(all_continent_VIIRS_2022_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2022_Q2_zeroes_masked = VIIRS_2022_Q2.updateMask(all_continent_VIIRS_2022_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2022_Q1_zeroes_masked = VIIRS_2022_Q1.updateMask(all_continent_VIIRS_2022_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2021_Q4_zeroes_masked = VIIRS_2021_Q4.updateMask(all_continent_VIIRS_2021_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2021_Q3_zeroes_masked = VIIRS_2021_Q3.updateMask(all_continent_VIIRS_2021_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2021_Q2_zeroes_masked = VIIRS_2021_Q2.updateMask(all_continent_VIIRS_2021_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2021_Q1_zeroes_masked = VIIRS_2021_Q1.updateMask(all_continent_VIIRS_2021_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2020_Q4_zeroes_masked = VIIRS_2020_Q4.updateMask(all_continent_VIIRS_2020_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2020_Q3_zeroes_masked = VIIRS_2020_Q3.updateMask(all_continent_VIIRS_2020_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2020_Q2_zeroes_masked = VIIRS_2020_Q2.updateMask(all_continent_VIIRS_2020_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2020_Q1_zeroes_masked = VIIRS_2020_Q1.updateMask(all_continent_VIIRS_2020_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2019_Q4_zeroes_masked = VIIRS_2019_Q4.updateMask(all_continent_VIIRS_2019_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2019_Q3_zeroes_masked = VIIRS_2019_Q3.updateMask(all_continent_VIIRS_2019_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2019_Q2_zeroes_masked = VIIRS_2019_Q2.updateMask(all_continent_VIIRS_2019_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2019_Q1_zeroes_masked = VIIRS_2019_Q1.updateMask(all_continent_VIIRS_2019_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2018_Q4_zeroes_masked = VIIRS_2018_Q4.updateMask(all_continent_VIIRS_2018_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2018_Q3_zeroes_masked = VIIRS_2018_Q3.updateMask(all_continent_VIIRS_2018_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2018_Q2_zeroes_masked = VIIRS_2018_Q2.updateMask(all_continent_VIIRS_2018_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2018_Q1_zeroes_masked = VIIRS_2018_Q1.updateMask(all_continent_VIIRS_2018_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2017_Q4_zeroes_masked = VIIRS_2017_Q4.updateMask(all_continent_VIIRS_2017_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2017_Q3_zeroes_masked = VIIRS_2017_Q3.updateMask(all_continent_VIIRS_2017_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2017_Q2_zeroes_masked = VIIRS_2017_Q2.updateMask(all_continent_VIIRS_2017_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2017_Q1_zeroes_masked = VIIRS_2017_Q1.updateMask(all_continent_VIIRS_2017_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2016_Q4_zeroes_masked = VIIRS_2016_Q4.updateMask(all_continent_VIIRS_2016_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2016_Q3_zeroes_masked = VIIRS_2016_Q3.updateMask(all_continent_VIIRS_2016_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2016_Q2_zeroes_masked = VIIRS_2016_Q2.updateMask(all_continent_VIIRS_2016_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2016_Q1_zeroes_masked = VIIRS_2016_Q1.updateMask(all_continent_VIIRS_2016_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2015_Q4_zeroes_masked = VIIRS_2015_Q4.updateMask(all_continent_VIIRS_2015_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2015_Q3_zeroes_masked = VIIRS_2015_Q3.updateMask(all_continent_VIIRS_2015_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2015_Q2_zeroes_masked = VIIRS_2015_Q2.updateMask(all_continent_VIIRS_2015_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2015_Q1_zeroes_masked = VIIRS_2015_Q1.updateMask(all_continent_VIIRS_2015_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2014_Q4_zeroes_masked = VIIRS_2014_Q4.updateMask(all_continent_VIIRS_2014_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2014_Q3_zeroes_masked = VIIRS_2014_Q3.updateMask(all_continent_VIIRS_2014_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2014_Q2_zeroes_masked = VIIRS_2014_Q2.updateMask(all_continent_VIIRS_2014_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2014_Q1_zeroes_masked = VIIRS_2014_Q1.updateMask(all_continent_VIIRS_2014_Q1_greater_than_zero_mask);
-var all_continent_VIIRS_2013_Q4_zeroes_masked = VIIRS_2013_Q4.updateMask(all_continent_VIIRS_2013_Q4_greater_than_zero_mask);
-var all_continent_VIIRS_2013_Q3_zeroes_masked = VIIRS_2013_Q3.updateMask(all_continent_VIIRS_2013_Q3_greater_than_zero_mask);
-var all_continent_VIIRS_2013_Q2_zeroes_masked = VIIRS_2013_Q2.updateMask(all_continent_VIIRS_2013_Q2_greater_than_zero_mask);
-var all_continent_VIIRS_2013_Q1_zeroes_masked = VIIRS_2013_Q1.updateMask(all_continent_VIIRS_2013_Q1_greater_than_zero_mask);
-
-//Log transform data
-var log_all_continent_VIIRS_2024_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2024_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2024_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2024_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2023_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2023_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2023_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2023_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2023_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2023_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2023_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2023_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2022_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2022_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2022_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2022_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2022_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2022_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2022_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2022_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2021_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2021_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2021_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2021_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2021_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2021_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2021_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2021_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2020_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2020_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2020_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2020_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2020_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2020_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2020_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2020_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2019_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2019_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2019_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2019_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2019_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2019_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2019_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2019_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2018_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2018_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2018_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2018_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2018_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2018_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2018_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2018_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2017_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2017_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2017_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2017_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2017_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2017_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2017_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2017_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2016_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2016_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2016_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2016_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2016_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2016_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2016_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2016_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2015_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2015_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2015_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2015_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2015_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2015_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2015_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2015_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2014_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2014_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2014_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2014_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2014_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2014_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2014_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2014_Q1_zeroes_masked).log10();
-var log_all_continent_VIIRS_2013_Q4_zeroes_masked = ee.Image(all_continent_VIIRS_2013_Q4_zeroes_masked).log10();
-var log_all_continent_VIIRS_2013_Q3_zeroes_masked = ee.Image(all_continent_VIIRS_2013_Q3_zeroes_masked).log10();
-var log_all_continent_VIIRS_2013_Q2_zeroes_masked = ee.Image(all_continent_VIIRS_2013_Q2_zeroes_masked).log10();
-var log_all_continent_VIIRS_2013_Q1_zeroes_masked = ee.Image(all_continent_VIIRS_2013_Q1_zeroes_masked).log10();
-
-Map.addLayer(log_all_continent_VIIRS_2023_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2023 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2022_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2022 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2021_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2021 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2020_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2020 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2019_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2019 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2018_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2018 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2017_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2017 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2016_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2016 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2015_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2015 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2014_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2014 all continent',0);
-Map.addLayer(log_all_continent_VIIRS_2013_Q1_zeroes_masked, VIIRSParams, 'VIIRS Q1, 2013 all continent',0);
-
-
-
-//Calculate stats
-print("All Continent VIIRS stats Q1 2013 to Q4 2023",
-  log_all_continent_VIIRS_2013_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2013_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2013_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2013_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2014_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2014_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2014_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2014_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2015_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2015_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2015_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2015_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2016_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2016_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2016_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2016_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2017_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2017_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2017_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2017_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2018_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2018_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2018_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2018_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2019_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2019_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2019_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2019_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2020_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2020_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2020_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2020_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2021_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2021_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2021_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2021_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2022_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2022_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2022_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2022_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2023_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2023_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2023_Q3_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2023_Q4_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2024_Q1_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-}),
-  log_all_continent_VIIRS_2024_Q2_zeroes_masked.reduceRegion({
-  reducer: reducer,
-  geometry: geometry,
-  maxPixels: maxPixels,
-  scale: scale,
-  tileScale: tileScale
-})
-);
+//Visualise the outputs for each quarter - default display is layer is off
 
 Map.addLayer(logVIIRS_2013_Q1_zeroes_masked, VIIRSParams, 'marine VIIRS Q1, 2013',0);
 Map.addLayer(logVIIRS_2013_Q2_zeroes_masked, VIIRSParams, 'marine VIIRS Q2, 2013',0);
@@ -1145,14 +655,12 @@ Map.addLayer(logVIIRS_2023_Q4_zeroes_masked, VIIRSParams, 'marine VIIRS Q4, 2023
 Map.addLayer(logVIIRS_2024_Q1_zeroes_masked, VIIRSParams, 'marine VIIRS Q1, 2024',0);
 Map.addLayer(logVIIRS_2024_Q2_zeroes_masked, VIIRSParams, 'marine VIIRS Q2, 2024',0);
 
-//Calculating the difference between periods and showing the result
-
+//Calculating the difference between periods and showing the result - change name of variable to do different periods
 
 var diff_marine_only_decrease_2022Q3_Vs_2020Q2 = logVIIRS_2022_Q3_zeroes_masked.subtract(logVIIRS_2020_Q2_zeroes_masked);
 Map.addLayer(diff_marine_only_decrease_2022Q3_Vs_2020Q2, difference_params, 'Difference between Q3 2022 and Q2 2020',1);
 
-
-//Adding all of the IHO Sea boundaries
+//Visualise all of the IHO Sea boundaries
 
 var World_IHO_Seas = ee.FeatureCollection('users/lyndonllewellyn1/World_Seas_IHO_v3');
 var shown = false; // true or false, 1 or 0 
@@ -1160,13 +668,3 @@ var opacity = 0.5; // number [0-1]
 var nameLayer = 'World IHO Seas'; // string
 var visParams = {color: 'yellow'}; // dictionary: 
 Map.addLayer(World_IHO_Seas, visParams, nameLayer, shown, opacity);
-
-//Adding locations of the world’s ports
-var World_Port_Index = ee.FeatureCollection('users/lyndonllewellyn1/World_Port_Index');
-var shown = false; // true or false, 1 or 0 
-var opacity = 1; // number [0-1]
-var nameLayer = 'World Port Index'; // string
-var visParams = {color: 'red'}; // dictionary: 
-Map.addLayer(World_Port_Index, visParams, nameLayer, shown, opacity);
-
-
