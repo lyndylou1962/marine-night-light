@@ -19,6 +19,9 @@ var difference_params = {bands: ['avg_rad'],  min: -2, max: 2, palette: diff_plo
 //var geometry = ee.Geometry.Point(123.3165, -13.9451).buffer(30000);
 
 //Define a region of interest using a shapefile
+      //The example given here is for the Persian Gulf which can be accessed via https://code.earthengine.google.com/?asset=users/lyndonllewellyn1/persian_gulf.
+      //Let the author know if the sharing permissions do not work.  Shapefiles for all other individual IHO seas can be shared in GEE 
+
 var geometry = ee.FeatureCollection('users/lyndonllewellyn1/persian_gulf');
 
 //Create a series of variables comprising the median value at each pixel across the stack of bands for the previous 12 months.  Increment each value by a quarter year
