@@ -8,7 +8,7 @@ var diff_plot_palette = ['E10600','FF0000', 'FF8A8A', 'a7ffa4', '#00ff00', '#ffF
 var maxPixels = 1e15;  //This decreases the likelihood of computation timeouts
 var tileScale = 16; // This decreases the likelihood of computation timeouts
 
-//Select the relevant night light datset and the data band
+//Select the relevant night light dataset and the actual data band
 var VIIRSCollection = ee.ImageCollection("NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG").select('avg_rad');
 
 //Defining colour schemes based on above pallettes
@@ -21,7 +21,7 @@ var difference_params = {bands: ['avg_rad'],  min: -2, max: 2, palette: diff_plo
 //Define a region of interest using a shapefile
 var geometry = ee.FeatureCollection('users/lyndonllewellyn1/persian_gulf');
 
-//median of all values across at each pixel across the stack of bands for the previous 12 months.
+//Create a series of variables comprising the median value at each pixel across the stack of bands for the previous 12 months.  Increment each value by a quarter year
 var VIIRS_2023_Q4 = VIIRSCollection.filterDate('2023-01-01', '2023-12-31').median();
 var VIIRS_2023_Q3 = VIIRSCollection.filterDate('2022-10-01', '2023-09-30').median();
 var VIIRS_2023_Q2 = VIIRSCollection.filterDate('2022-07-01', '2023-06-30').median();
@@ -127,7 +127,7 @@ var maskedCompositeVIIRS2013_Q3 = VIIRS_2013_Q3.updateMask(mask);
 var maskedCompositeVIIRS2013_Q2 = VIIRS_2013_Q2.updateMask(mask);
 var maskedCompositeVIIRS2013_Q1 = VIIRS_2013_Q1.updateMask(mask);
 
-//Remove pixels less than one in the VIIRS images (the gte value can be changed from one in the first line)
+//Remove pixels less than one in the VIIRS images (the gte value can be changed from one in the first lin buyt the value of one ensures the resulting data can be validly log10 transformed)
 var gte_value = 1;
 var VIIRS_2023_Q4_greater_than_mask = maskedCompositeVIIRS2023_Q4.gte(gte_value);
 var VIIRS_2023_Q3_greater_than_mask = maskedCompositeVIIRS2023_Q3.gte(gte_value);
@@ -174,7 +174,7 @@ var VIIRS_2013_Q3_greater_than_mask = maskedCompositeVIIRS2013_Q3.gte(gte_value)
 var VIIRS_2013_Q2_greater_than_mask = maskedCompositeVIIRS2013_Q2.gte(gte_value);
 var VIIRS_2013_Q1_greater_than_mask = maskedCompositeVIIRS2013_Q1.gte(gte_value);
 
-//Eliminate any zero artafacts bceuase the very large number of pixels can artificially reduce the final calculation
+//Eliminate the zero values created by the previous step which replaces valuyes less than the nominate "gte" value with zeroes
 var VIIRS_2023_Q4_zeroes_masked = VIIRS_2023_Q4.updateMask(VIIRS_2023_Q4_greater_than_mask);
 var VIIRS_2023_Q3_zeroes_masked = VIIRS_2023_Q3.updateMask(VIIRS_2023_Q3_greater_than_mask);
 var VIIRS_2023_Q2_zeroes_masked = VIIRS_2023_Q2.updateMask(VIIRS_2023_Q2_greater_than_mask);
